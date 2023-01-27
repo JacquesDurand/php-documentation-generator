@@ -26,7 +26,6 @@
         "symfony/property-access": "^6.2",
         "symfony/property-info": "^6.2",
         "symfony/security-bundle": "^6.2",
-        "symfony/validator": "^6.2",
         "symfony/yaml": "^6.2"
     },
     "require": {
@@ -47,6 +46,7 @@
         "symfony/css-selector": "^6.2",
         "symfony/http-client": "^6.2",
         "symfony/framework-bundle": "^6.2",
+        "symfony/validator": "^6.2",
         "spatie/yaml-front-matter": "^2.0",
         "dama/doctrine-test-bundle": "^7.1",
         "justinrainbow/json-schema": "^5.2",
