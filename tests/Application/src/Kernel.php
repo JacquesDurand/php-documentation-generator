@@ -117,7 +117,7 @@ class Kernel extends BaseKernel
             return;
         }
         $this->boot();
-        @mkdir('var/databases/'.$this->guide, recursive: true);
+        @mkdir($this->getDBDir(), recursive: true);
 
         foreach ($migrationClasses as $migrationClass) {
             if ("Doctrine\Migrations\AbstractMigration" !== (new \ReflectionClass($migrationClass))->getParentClass()->getName()) {
