@@ -22,6 +22,7 @@ use Symfony\Component\Config\Definition\Dumper\YamlReferenceDumper;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -33,7 +34,8 @@ final class ReferenceCommand extends Command
         private readonly PhpDocHelper $phpDocHelper,
         private readonly ReflectionHelper $reflectionHelper,
         private readonly OutputFormatter $outputFormatter,
-        private readonly ConfigurationHandler $configuration
+        private readonly ConfigurationHandler $configuration,
+        private readonly string $templateDir
     ) {
         parent::__construct(name: 'reference');
     }
@@ -45,7 +47,13 @@ final class ReferenceCommand extends Command
             ->addArgument(
                 name: 'output',
                 mode: InputArgument::OPTIONAL,
-                description: 'The path to the mdx file where the reference will be printed. Leave empty for screen printing'
+                description: 'The path to the file where the reference will be printed. Leave empty for screen printing'
+            )
+            ->addOption(
+                name: 'template',
+                mode: InputOption::VALUE_REQUIRED,
+                description: 'The path to the template file to use to generate the output file',
+                default: sprintf('%s/reference.mdx.twig', $this->templateDir)
             );
     }
 

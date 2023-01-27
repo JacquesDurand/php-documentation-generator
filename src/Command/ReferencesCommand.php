@@ -18,6 +18,7 @@ use ApiPlatform\PDGBundle\Services\Reference\PhpDocHelper;
 use ApiPlatform\PDGBundle\Services\Reference\Reflection\ReflectionHelper;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
@@ -32,6 +33,15 @@ final class ReferencesCommand extends Command
         private readonly ConfigurationHandler $configuration
     ) {
         parent::__construct(name: 'references');
+    }
+
+    protected function configure(): void
+    {
+        $this->addArgument(
+            name: 'template',
+            mode: InputArgument::REQUIRED,
+            description: 'The path to the template file to use to generate each reference output file',
+        );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

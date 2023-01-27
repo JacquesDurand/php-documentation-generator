@@ -1,0 +1,71 @@
+import Head from "next/head";
+
+{% block head %}
+<Head><title>{{ class.shortName }}</title></Head>
+{% endblock %}
+
+{% block title %}
+# {{ class.name }}
+{% endblock %}
+
+{% block extends %}
+### Extends:
+
+> {{ class.parent }}
+{% endblock %}
+
+{% block implements %}
+### Implements:
+
+{% for interface in class.interfaces %}
+> {{ interface }}
+{% if not loop.last %}
+>
+{% endif %}
+{% endblock %}
+
+{% block description %}
+{{ class.description|raw }}
+{% endblock %}
+
+{% block constants %}
+## Constants:
+
+{% for constant in class.constants %}
+{% block constant %}
+### {{ constant.name|upper }} = `{{ constant.value }}`
+
+{{ constant.description }}
+{% endblock %}
+{% endfor %}
+{% endblock %}
+
+{% block properties %}
+## Properties:
+
+{% for property in class.properties %}
+{% block property %}
+<a className="anchor" href="#{{ property.name }}" id="{{ property.name }}">§</a>
+### public ?string <span className="token keyword">${{ property.name }}</span> = null
+> `{{ property.types }}`
+
+**Accessors**: get, set, is
+
+---
+{% endblock %}
+{% endfor %}
+{% endblock %}
+
+{% block methods %}
+## Methods:
+
+{% for method in class.methods %}
+{% block method %}
+<a className="anchor" href="#{{ method.name }}" id="{{ method.name }}">§</a>
+### public function <span className="token keyword">${{ method.name }}</span>: void
+> `string|null`
+
+---
+{% endblock %}
+{% endfor %}
+{% endblock %}

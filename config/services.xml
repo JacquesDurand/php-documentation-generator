@@ -12,6 +12,7 @@
             <argument type="service" id="pdg.helper.reflection"/>
             <argument type="service" id="pdg.output_formatter"/>
             <argument type="service" id="pdg.configuration_handler"/>
+            <argument>%kernel.project_dir%/template</argument>
             <tag>console.command</tag>
         </service>
 
