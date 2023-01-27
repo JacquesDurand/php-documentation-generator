@@ -29,7 +29,8 @@
         "spatie/yaml-front-matter": "^2.0",
         "dama/doctrine-test-bundle": "^7.1",
         "justinrainbow/json-schema": "^5.2",
-        "zenstruck/foundry": "^1.27"
+        "zenstruck/foundry": "^1.27",
+        "twig/twig": "^3.5"
     },
     "require-dev": {
         "symfony/dom-crawler": "^6.2",

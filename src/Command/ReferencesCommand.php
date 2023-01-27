@@ -37,11 +37,13 @@ final class ReferencesCommand extends Command
 
     protected function configure(): void
     {
-        $this->addArgument(
-            name: 'template',
-            mode: InputArgument::REQUIRED,
-            description: 'The path to the template file to use to generate each reference output file',
-        );
+        $this
+            ->setDescription('Creates references documentation for PHP classes')
+            ->addArgument(
+                name: 'template',
+                mode: InputArgument::REQUIRED,
+                description: 'The path to the template file to use to generate each reference output file',
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int

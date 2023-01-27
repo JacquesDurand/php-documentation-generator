@@ -5,55 +5,65 @@ import Head from "next/head";
 {% endblock %}
 
 {% block title %}
-# {{ class.name }}
+# \{{ class.name }}
 {% endblock %}
 
 {% block extends %}
+{% if class.parentClass %}
 ### Extends:
 
-> {{ class.parent }}
+> {{ class.parentClass|md_link }}
+{% endif %}
 {% endblock %}
 
 {% block implements %}
+{% if class.interfaces|length > 0 %}
 ### Implements:
 
 {% for interface in class.interfaces %}
-> {{ interface }}
+> {{ interface|md_link }}
 {% if not loop.last %}
 >
+{% endif %}
 {% endif %}
 {% endblock %}
 
 {% block description %}
-{{ class.description|raw }}
+{% if class.docComment|mdx_sanitize|length > 0 %}
+{{ class.docComment|mdx_sanitize|raw }}
+{% endif %}
 {% endblock %}
 
 {% block constants %}
+{% if class.reflectionConstants(constant('ReflectionClassConstant::IS_PUBLIC'))|length > 0 %}
 ## Constants:
 
-{% for constant in class.constants %}
+{% for constant in class.reflectionConstants(constant('ReflectionClassConstant::IS_PUBLIC')) %}
 {% block constant %}
-### {{ constant.name|upper }} = `{{ constant.value }}`
+### <span className="token keyword">{{ constant.name|upper }}</span> = `{{ constant.value|md_value }}`
 
-{{ constant.description }}
+{{ constant.docComment|mdx_sanitize|raw }}
 {% endblock %}
 {% endfor %}
+{% endif %}
 {% endblock %}
 
 {% block properties %}
+{% if class.properties|length > 0 %}
 ## Properties:
 
 {% for property in class.properties %}
 {% block property %}
 <a className="anchor" href="#{{ property.name }}" id="{{ property.name }}">§</a>
-### public ?string <span className="token keyword">${{ property.name }}</span> = null
-> `{{ property.types }}`
+### {{ getVisibility(property) }} ?string <span className="token keyword">${{ property.name }}</span> = null
+{#> `{{ property.types }}`#}
 
-**Accessors**: get, set, is
+{#**Accessors**: get, set, is#}
 
 ---
 {% endblock %}
 {% endfor %}
+{% endif %}
 {% endblock %}
 
 {% block methods %}
@@ -63,7 +73,7 @@ import Head from "next/head";
 {% block method %}
 <a className="anchor" href="#{{ method.name }}" id="{{ method.name }}">§</a>
 ### public function <span className="token keyword">${{ method.name }}</span>: void
-> `string|null`
+> `{{ method.returnType }}`
 
 ---
 {% endblock %}

@@ -1,0 +1,15 @@
+import Head from "next/head";
+
+{% block head %}
+<Head><title>{{ class.shortName }}</title></Head>
+{% endblock %}
+
+{% block title %}
+# Configuration Reference
+{% endblock %}
+
+{% block description %}
+```yaml
+{{ configuration }}
+```
+{% endblock %}

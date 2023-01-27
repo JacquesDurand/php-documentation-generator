@@ -4,7 +4,22 @@
            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:schemaLocation="http://symfony.com/schema/dic/services http://symfony.com/schema/dic/services/services-1.0.xsd">
     <services>
+        <defaults public="false"/>
+
         <service id="pdg.configuration_handler" class="ApiPlatform\PDGBundle\Services\ConfigurationHandler"/>
+
+        <!-- Twig -->
+        <service id="pdg.twig.extension.reflection" class="ApiPlatform\PDGBundle\Twig\ReflectionExtension">
+            <argument type="service" id="pdg.configuration_handler"/>
+        </service>
+
+        <service id="pdg.twig.extension.markdown" class="ApiPlatform\PDGBundle\Twig\MarkdownExtension">
+            <argument type="service" id="pdg.configuration_handler"/>
+        </service>
+
+        <service id="pdg.twig.extension.markdown_extended" class="ApiPlatform\PDGBundle\Twig\MarkdownExtendedExtension">
+            <argument type="service" id="pdg.configuration_handler"/>
+        </service>
 
         <!-- Commands -->
         <service id="pdg.command.reference" class="ApiPlatform\PDGBundle\Command\ReferenceCommand">

@@ -20,15 +20,16 @@ use ApiPlatform\PDGBundle\Services\Reference\Reflection\ReflectionHelper;
 use Symfony\Component\Config\Definition\ConfigurationInterface;
 use Symfony\Component\Config\Definition\Dumper\YamlReferenceDumper;
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-final class ReferenceCommand extends Command
+final class ConfigurationCommand extends Command
 {
+    private \ReflectionClass $reflectionClass;
+
     public function __construct(
         private readonly PhpDocHelper $phpDocHelper,
         private readonly ReflectionHelper $reflectionHelper,
@@ -42,7 +43,7 @@ final class ReferenceCommand extends Command
     protected function configure(): void
     {
         $this
-            ->setDescription('Creates a reference documentation for a PHP class')
+            ->setDescription('Creates a reference documentation for a bundle configuration')
             ->addArgument(name: 'filename', mode: InputArgument::REQUIRED)
             ->addArgument(
                 name: 'output',
@@ -53,65 +54,65 @@ final class ReferenceCommand extends Command
                 name: 'template',
                 mode: InputOption::VALUE_REQUIRED,
                 description: 'The path to the template file to use to generate the output file',
-                default: sprintf('%s/mdx/reference.mdx.twig', $this->templateDir)
+                default: sprintf('%s/reference.mdx.twig', $this->templateDir)
             );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $file = new \SplFileInfo($input->getArgument('filename'));
-        $reflectionClass = new \ReflectionClass($this->getNamespace($file));
-
         $style = new SymfonyStyle($input, $output);
-        $style->info(sprintf('Generating reference for "%s"', $file->getPathname()));
+        $filename = $input->getArgument('filename');
 
-        if ($reflectionClass->implementsInterface(ConfigurationInterface::class)) {
-            return $this->getApplication()?->find('configuration')->run(new ArrayInput([
-                'filename' => $file->getPathName(),
-                'output' => $input->getArgument('output'),
-            ]), $output);
+        $style->info(sprintf('Generating reference for "%s"', $filename));
+        $namespace = $this->getNamespace($filename);
+
+        $this->reflectionClass = new \ReflectionClass($namespace);
+        $outputFile = $input->getArgument('output');
+
+        if ($this->reflectionClass->implementsInterface(ConfigurationInterface::class)) {
+            return $this->generateConfigExample($style, $outputFile);
         }
 
         $content = '';
-        $content = $this->outputFormatter->writePageTitle($reflectionClass, $content);
-        $content = $this->outputFormatter->writeClassName($reflectionClass, $content);
-        $content = $this->reflectionHelper->handleParent($reflectionClass, $content);
-        $content = $this->reflectionHelper->handleImplementations($reflectionClass, $content);
-        $content = $this->phpDocHelper->handleClassDoc($reflectionClass, $content);
-        $content = $this->reflectionHelper->handleClassConstants($reflectionClass, $content);
-        $content = $this->reflectionHelper->handleProperties($reflectionClass, $content);
-        $content = $this->reflectionHelper->handleMethods($reflectionClass, $content);
+        $content = $this->outputFormatter->writePageTitle($this->reflectionClass, $content);
+        $content = $this->outputFormatter->writeClassName($this->reflectionClass, $content);
+        $content = $this->reflectionHelper->handleParent($this->reflectionClass, $content);
+        $content = $this->reflectionHelper->handleImplementations($this->reflectionClass, $content);
+        $content = $this->phpDocHelper->handleClassDoc($this->reflectionClass, $content);
+        $content = $this->reflectionHelper->handleClassConstants($this->reflectionClass, $content);
+        $content = $this->reflectionHelper->handleProperties($this->reflectionClass, $content);
+        $content = $this->reflectionHelper->handleMethods($this->reflectionClass, $content);
 
-        if (!$input->getArgument('output')) {
+        if (!$outputFile) {
             fwrite(\STDOUT, $content);
-            $style->success('Reference successfully printed on stdout for '.$file->getPathname());
+            $style->success('Reference successfully printed on stdout for '.$filename);
 
             return Command::SUCCESS;
         }
 
-        if (!fwrite(fopen($input->getArgument('output'), 'w'), $content)) {
-            $style->error('Error opening or writing '.$input->getArgument('output'));
+        if (!fwrite(fopen($outputFile, 'w'), $content)) {
+            $style->error('Error opening or writing '.$outputFile);
 
             return Command::FAILURE;
         }
 
-        $style->success('Reference successfully generated for '.$file->getPathname());
+        $style->success('Reference successfully generated for '.$filename);
 
         return Command::SUCCESS;
     }
 
-    private function generateConfigExample(\ReflectionClass $reflectionClass, SymfonyStyle $style, ?string $outputFile): int
+    private function generateConfigExample(SymfonyStyle $style, ?string $outputFile): int
     {
         $style->info('Generating configuration reference');
 
-        $yaml = (new YamlReferenceDumper())->dump($reflectionClass->newInstance());
+        $yaml = (new YamlReferenceDumper())->dump($this->reflectionClass->newInstance());
         if (!$yaml) {
             $style->error('No configuration is available');
 
             return Command::FAILURE;
         }
 
-        $content = $this->outputFormatter->writePageTitle($reflectionClass, '');
+        $content = $this->outputFormatter->writePageTitle($this->reflectionClass, '');
         $content .= '# Configuration Reference'.\PHP_EOL;
         $content .= sprintf('```yaml'.\PHP_EOL.'%s```', $yaml);
         $content .= \PHP_EOL;
@@ -126,15 +127,15 @@ final class ReferenceCommand extends Command
         return Command::SUCCESS;
     }
 
-    private function getNamespace(\SplFileInfo $file): string
+    private function getNamespace(string $filename): string
     {
-        // Remove root path from file path
-        $namespace = preg_replace(sprintf('#^%s/#i', $this->configuration->get('reference.src')), '', $file->getPath());
-        // Convert it to namespace format
-        $namespace = str_replace('/', '\\', $namespace);
-        // Prepend main namespace
-        $namespace = sprintf('%s\\%s', $this->configuration->get('reference.namespace'), $namespace);
+        // Remove root dir from file path
+        $filename = preg_replace(sprintf('#^%s/#i', $this->configuration->get('reference.src')), '', $filename);
 
-        return sprintf('%s\\%s', $namespace, $file->getBasename('.'.$file->getExtension()));
+        // Remove file extension
+        $filename = str_replace(['/', '.php'], ['\\', ''], $filename);
+
+        // Guess namespace
+        return sprintf('%s\\%s', $this->configuration->get('reference.namespace'), $filename);
     }
 }
