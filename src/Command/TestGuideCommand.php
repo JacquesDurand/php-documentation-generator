@@ -41,7 +41,7 @@ final class TestGuideCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        // Just to require the configured autoloader
+        // This requires the configured autoloader
         $this->configurationHandler->parse();
         $style = new SymfonyStyle($input, $output);
         $guide = $input->getArgument('guide');

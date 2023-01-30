@@ -1,8 +1,7 @@
 api_platform_pdg:
   autoload: 'vendor/autoload.php'
-  database_dir: './var/databases'
   reference:
-    src: '/home/hugo/Documents/Tilleuls/Forks/core/src'
+    src: '/home/user/path/to/project/src'
     namespace: 'ApiPlatform'
     patterns:
       directories: ['Metadata', 'OpenApi/Model']
