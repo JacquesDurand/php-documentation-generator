@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace App;
 
 use ApiPlatform\Metadata\ApiResource;
+use ApiPlatform\PDGBundle\Services\ConfigurationHandler;
 use ApiPlatform\PDGBundle\Tests\TestBundle\Metadata\Resource\Factory\StaticResourceNameCollectionFactory;
 use Doctrine\Migrations\Configuration\Configuration;
 use Doctrine\Migrations\Configuration\EntityManager\ExistingEntityManager;
@@ -28,6 +29,7 @@ use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
+use Symfony\Component\Filesystem\Path;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Kernel as BaseKernel;
 
@@ -106,7 +108,9 @@ class Kernel extends BaseKernel
 
     public function getDBDir(): string
     {
-        return (new \ApiPlatform\PDGBundle\Kernel('test', true))->getProjectDir().'/var/databases/'.$this->guide;
+        $path = Path::makeAbsolute((new ConfigurationHandler())->get('database_dir'), getcwd());
+
+        return $path.\DIRECTORY_SEPARATOR.$this->guide;
     }
 
     public function executeMigrations(string $direction = Direction::UP): void
@@ -117,7 +121,6 @@ class Kernel extends BaseKernel
             return;
         }
         $this->boot();
-        dump($this->getContainer()->getParameter('database_url'));
         @mkdir($this->getDBDir(), recursive: true);
 
         foreach ($migrationClasses as $migrationClass) {
