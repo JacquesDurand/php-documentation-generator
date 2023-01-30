@@ -117,6 +117,7 @@ class Kernel extends BaseKernel
             return;
         }
         $this->boot();
+        dump($this->getContainer()->getParameter('database_url'));
         @mkdir($this->getDBDir(), recursive: true);
 
         foreach ($migrationClasses as $migrationClass) {
