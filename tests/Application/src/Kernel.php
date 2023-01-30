@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace App;
 
 use ApiPlatform\Metadata\ApiResource;
-use ApiPlatform\PDGBundle\Services\ConfigurationHandler;
 use ApiPlatform\PDGBundle\Tests\TestBundle\Metadata\Resource\Factory\StaticResourceNameCollectionFactory;
 use Doctrine\Migrations\Configuration\Configuration;
 use Doctrine\Migrations\Configuration\EntityManager\ExistingEntityManager;
@@ -29,7 +28,6 @@ use Symfony\Component\Config\Loader\LoaderInterface;
 use Symfony\Component\Console\Input\ArrayInput;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
-use Symfony\Component\Filesystem\Path;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Kernel as BaseKernel;
 
@@ -81,7 +79,7 @@ class Kernel extends BaseKernel
 
         $container->parameters()->set(
             'database_url',
-            sprintf('sqlite:///%s/%s', $this->getDBDir(), 'data.db')
+            sprintf('sqlite:///%s/%s', $this->getCacheDir(), 'data.db')
         );
 
         if (\function_exists('App\DependencyInjection\configure')) {
@@ -106,13 +104,6 @@ class Kernel extends BaseKernel
         return (new \ApiPlatform\PDGBundle\Kernel('test', true))->getCacheDir().$this->guide;
     }
 
-    public function getDBDir(): string
-    {
-        $path = Path::makeAbsolute((new ConfigurationHandler())->get('database_dir'), getcwd());
-
-        return $path.\DIRECTORY_SEPARATOR.$this->guide;
-    }
-
     public function executeMigrations(string $direction = Direction::UP): void
     {
         $migrationClasses = $this->getDeclaredClassesForNamespace('DoctrineMigrations');
@@ -121,7 +112,6 @@ class Kernel extends BaseKernel
             return;
         }
         $this->boot();
-        @mkdir($this->getDBDir(), recursive: true);
 
         foreach ($migrationClasses as $migrationClass) {
             if ("Doctrine\Migrations\AbstractMigration" !== (new \ReflectionClass($migrationClass))->getParentClass()->getName()) {
