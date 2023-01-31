@@ -41,7 +41,7 @@ final class ConfigurationHandler
             return $default;
         }
 
-        return \is_string($config) ? rtrim($config, \DIRECTORY_SEPARATOR) : $config;
+        return \is_string($config) ? rtrim($config, '/\\') : $config;
     }
 
     public function isExcluded(\Reflector|ParserInterface $reflection): bool

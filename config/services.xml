@@ -36,14 +36,14 @@
         <service id="pdg.command.reference" class="ApiPlatform\PDGBundle\Command\ReferenceCommand">
             <argument type="service" id="pdg.configuration_handler"/>
             <argument type="service" id="pdg.twig"/>
-            <argument>%kernel.project_dir%/template/mdx/references</argument>
+            <argument>%kernel.project_dir%/template/references</argument>
             <tag>console.command</tag>
         </service>
 
         <service id="pdg.command.references" class="ApiPlatform\PDGBundle\Command\ReferencesCommand">
             <argument type="service" id="pdg.configuration_handler"/>
             <argument type="service" id="pdg.twig"/>
-            <argument>%kernel.project_dir%/template/mdx/references</argument>
+            <argument>%kernel.project_dir%/template/references</argument>
             <tag>console.command</tag>
         </service>
 
@@ -52,39 +52,15 @@
         </service>
 
         <service id="pdg.command.guide" class="ApiPlatform\PDGBundle\Command\GuideCommand">
-            <argument type="service" id="pdg.output_formatter"/>
+            <argument type="service" id="pdg.configuration_handler"/>
+            <argument type="service" id="pdg.twig"/>
+            <argument>%kernel.project_dir%/template/guides</argument>
             <tag>console.command</tag>
         </service>
 
         <service id="pdg.command.test_guide" class="ApiPlatform\PDGBundle\Command\TestGuideCommand">
             <argument type="service" id="pdg.configuration_handler"/>
             <tag>console.command</tag>
-        </service>
-
-        <!-- Helpers -->
-        <service id="pdg.output_formatter" class="ApiPlatform\PDGBundle\Services\Reference\OutputFormatter"/>
-
-        <service id="pdg.helper.php_doc" class="ApiPlatform\PDGBundle\Services\Reference\PhpDocHelper">
-            <argument type="service" id="pdg.output_formatter"/>
-        </service>
-
-        <service id="pdg.helper.reflection_property"
-                 class="ApiPlatform\PDGBundle\Services\Reference\Reflection\ReflectionPropertyHelper">
-            <argument type="service" id="pdg.output_formatter"/>
-            <argument type="service" id="pdg.helper.php_doc"/>
-        </service>
-
-        <service id="pdg.helper.reflection_method"
-                 class="ApiPlatform\PDGBundle\Services\Reference\Reflection\ReflectionMethodHelper">
-            <argument type="service" id="pdg.output_formatter"/>
-        </service>
-
-        <service id="pdg.helper.reflection"
-                 class="ApiPlatform\PDGBundle\Services\Reference\Reflection\ReflectionHelper">
-            <argument type="service" id="pdg.helper.php_doc"/>
-            <argument type="service" id="pdg.output_formatter"/>
-            <argument type="service" id="pdg.helper.reflection_property"/>
-            <argument type="service" id="pdg.helper.reflection_method"/>
         </service>
     </services>
 </container>

@@ -44,7 +44,7 @@ final class ReferencesCommand extends Command
             ->addOption(
                 name: 'template-path',
                 mode: InputOption::VALUE_REQUIRED,
-                description: 'The path to the template files to use to generate each reference output file',
+                description: 'The path to the template files to use to create each reference output file',
                 default: $this->templatePath
             );
     }
@@ -110,7 +110,7 @@ final class ReferencesCommand extends Command
                     '--template-path' => $input->getOption('template-path'),
                 ]), $output)
             ) {
-                $style->error(sprintf('Failed generating reference "%s".', $file->getPathname()));
+                $style->error(sprintf('Failed creating reference "%s".', $file->getPathname()));
 
                 return self::FAILURE;
             }
@@ -139,12 +139,12 @@ final class ReferencesCommand extends Command
             mkdir($dirName, 0777, true);
         }
         if (!file_put_contents($fileName, $content)) {
-            $style->error(sprintf('Cannot write file "%s".', $input->getArgument('output')));
+            $style->error(sprintf('Cannot write in "%s".', $input->getArgument('output')));
 
             return self::FAILURE;
         }
 
-        $style->success('References index successfully generated.');
+        $style->success('References index successfully created.');
 
         return self::SUCCESS;
     }

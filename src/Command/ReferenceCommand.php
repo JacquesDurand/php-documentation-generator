@@ -62,7 +62,7 @@ final class ReferenceCommand extends Command
         $reflectionClass = new \ReflectionClass($this->getNamespace($file));
 
         $style = new SymfonyStyle($input, $output);
-        $style->info(sprintf('Generating reference "%s".', $file->getPathname()));
+        $style->info(sprintf('Creating reference "%s".', $file->getPathname()));
 
         $templateFileName = 'reference.*.twig';
         $templateContext = ['class' => new ClassParser($reflectionClass)];
@@ -95,12 +95,12 @@ final class ReferenceCommand extends Command
             mkdir($dirName, 0777, true);
         }
         if (!file_put_contents($input->getArgument('output'), $content)) {
-            $style->error(sprintf('Cannot write file "%s".', $input->getArgument('output')));
+            $style->error(sprintf('Cannot write in "%s".', $input->getArgument('output')));
 
             return self::FAILURE;
         }
 
-        $style->success(sprintf('Reference "%s" successfully generated.', $file->getPathname()));
+        $style->success(sprintf('Reference "%s" successfully created.', $file->getPathname()));
 
         return self::SUCCESS;
     }
