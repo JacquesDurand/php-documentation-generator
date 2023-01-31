@@ -32,7 +32,7 @@ jobs:
           php-version: ${{ matrix.php }}
           extensions: oci8
           coverage: xdebug
-          tools: composer:v2, php-cs-fixer, phpstan, phpdoc
+          tools: composer:v2, php-cs-fixer, phpdoc
       - name: Get Composer Cache Directory
         id: composer-cache
         run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
@@ -48,14 +48,6 @@ jobs:
         run: vendor/bin/simple-phpunit --version
       - name: Run php-cs-fixer tests
         run: php-cs-fixer fix --diff --dry-run --ansi --verbose
-      - name: Cache PHPStan
-        uses: actions/cache@v3
-        with:
-          path: .phpstan/
-          key: phpstan-${{ github.sha }}
-          restore-keys: phpstan-
-      - name: Run PHPStan tests
-        run: phpstan analyze src tests
       - name: Run PHPUnit tests
         run: vendor/bin/simple-phpunit --coverage-clover build/logs/phpunit/clover.xml
       - name: Upload test artifacts

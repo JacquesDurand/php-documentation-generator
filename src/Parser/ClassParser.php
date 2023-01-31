@@ -64,7 +64,7 @@ final class ClassParser extends AbstractParser
             }
         }
 
-        // todo check "@see" tags to import absolute namespace if available
+        // todo check "@see" tags to import absolute namespace if available (/!\ PHPStan does not resolve imports)
 
         return $docComment;
     }

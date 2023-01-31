@@ -141,7 +141,7 @@ final class ReferencesCommand extends Command
             mkdir($dirName, 0777, true);
         }
         if (!file_put_contents($fileName, $content)) {
-            $style->error(sprintf('Cannot write in "%s".', $input->getArgument('output')));
+            $style->error(sprintf('Cannot write in "%s".', $fileName));
 
             return self::FAILURE;
         }
