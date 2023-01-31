@@ -13,52 +13,126 @@ declare(strict_types=1);
 
 namespace ApiPlatform\PDGBundle\Twig;
 
+use ApiPlatform\PDGBundle\Parser\ClassParser;
+use ApiPlatform\PDGBundle\Parser\ParserInterface;
 use ApiPlatform\PDGBundle\Services\ConfigurationHandler;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValueNode;
+use PHPStan\PhpDocParser\Lexer\Lexer;
+use PHPStan\PhpDocParser\Parser;
 use Twig\Extension\AbstractExtension;
 use Twig\TwigFilter;
 
-class MarkdownExtension extends AbstractExtension implements TemplateExtension
+class MarkdownExtension extends AbstractExtension
 {
-    public function __construct(private readonly ConfigurationHandler $configuration)
+    protected readonly Lexer $lexer;
+    protected readonly Parser\PhpDocParser $parser;
+
+    public function __construct(protected readonly ConfigurationHandler $configuration)
     {
+        $this->lexer = new Lexer();
+        $this->parser = new Parser\PhpDocParser(new Parser\TypeParser(new Parser\ConstExprParser()), new Parser\ConstExprParser());
     }
 
     public function getFilters(): array
     {
         return [
+            new TwigFilter('md_sanitize', [$this, 'sanitize']),
             new TwigFilter('md_link', [$this, 'getLink']),
+            new TwigFilter('md_url', [$this, 'getUrl']),
             new TwigFilter('md_value', [$this, 'formatValue']),
         ];
     }
 
-    public function getLink(\ReflectionClass $class): string
+    public function getLink(ParserInterface|PhpDocTagValueNode|string $data, string $referenceExtension = 'md'): string
     {
-        $name = $class->getName();
+        $name = $data;
 
-        // Internal
-        if (str_starts_with($name, $this->configuration->get('reference.src').'\\')) {
-            return sprintf('[%s](/reference/%s)', $name, str_replace(['ApiPlatform\\', '\\'], ['', '/'], $name));
+        if ($data instanceof PhpDocTagValueNode) {
+            $name = $data->type->__toString();
+        } elseif ($data instanceof ParserInterface) {
+            $name = $data->getName();
+        }
+
+        $url = $this->getUrl($data, $referenceExtension);
+
+        return $url ? sprintf('[`%s`](%s)', $name, $url) : sprintf('`%s`', $name);
+    }
+
+    public function getUrl(ParserInterface|PhpDocTagValueNode|string $data, string $referenceExtension = 'md'): ?string
+    {
+        if ($data instanceof PhpDocTagValueNode) {
+            // todo is it possible to detect a class and convert it to ReflectionClass? (/!\ PHPStan does not resolve imports)
+            $data = $data->type->__toString();
+        }
+
+        // try to convert $data to \ReflectionClass
+        if (\is_string($data)) {
+            try {
+                $data = new ClassParser(new \ReflectionClass($data));
+            } catch (\ReflectionException) {
+            }
+        }
+
+        if ($data instanceof ParserInterface) {
+            $name = $data->getName();
+
+            // Internal
+            if (str_starts_with($name, $this->configuration->get('reference.namespace').'\\')) {
+                // calling ConfigurationHandler::isExcluded to ensure the target class is not ignored
+                // from references generation because the target reference file may not exist yet
+                if (!$this->configuration->isExcluded($data)) {
+                    $file = new \SplFileInfo($data->getFileName());
+                    $rootPath = getcwd();
+
+                    // get relative file path without extension (e.g.: Entity/Book)
+                    $fileName = trim(sprintf('%s/%s', str_replace(sprintf('%s/%s', $rootPath, $this->configuration->get('reference.src')), '', $file->getPath()), $file->getBasename('.'.$file->getExtension())), '/');
+
+                    // get reference file path (e.g.: pages/references/Entity/Book.md)
+                    $filePath = sprintf('%s/%s.%s', $this->configuration->get('target.directories.reference_path'), $fileName, $referenceExtension);
+
+                    return sprintf('/%s', $filePath);
+                }
+            }
+
+            // PHP
+            if ($data instanceof ClassParser && !$data->isUserDefined()) {
+                return sprintf('https://php.net/class.%s', strtolower($name));
+            }
+
+            $data = $name;
         }
 
         // Symfony
-        if (str_starts_with($name, 'Symfony')) {
-            return sprintf('[%s](https://symfony.com/doc/current/index.html)', $name);
+        if (str_starts_with($data, 'Symfony\\')) {
+            return 'https://symfony.com/doc/current/index.html';
         }
 
-        // PHP
-        if (!$class->isUserDefined()) {
-            return sprintf('[%s](https://php.net/class.%s)', $name, strtolower($name));
-        }
-
-        return $name;
+        return null;
     }
 
-    public function formatValue($value): string
+    public function sanitize(string $string): string
     {
-        if (!\is_array($value)) {
-            return $value;
+        // convert "@see" tags to link when possible
+        if (preg_match_all('/{@see ([^}]+)}/', $string, $matches)) {
+            foreach ($matches[0] as $i => $match) {
+                $value = $matches[1][$i];
+
+                // HTTP link
+                if (str_starts_with($value, 'https://') || str_starts_with($value, 'http://')) {
+                    $value = sprintf('<%s>', $value);
+                } else {
+                    $value = $this->getLink($value);
+                }
+
+                $string = str_replace($match, sprintf('see %s', $value), $string);
+            }
         }
 
-        return \PHP_EOL.'```php'.\PHP_EOL.print_r($value, true).'```'.\PHP_EOL;
+        return $string;
+    }
+
+    public function formatValue($value)
+    {
+        return \is_array($value) ? json_encode($value) : $value;
     }
 }

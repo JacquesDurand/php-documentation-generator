@@ -13,55 +13,76 @@ declare(strict_types=1);
 
 namespace ApiPlatform\PDGBundle\Twig;
 
-use ApiPlatform\PDGBundle\Services\ConfigurationHandler;
-use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocChildNode;
-use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTextNode;
-use PHPStan\PhpDocParser\Lexer\Lexer;
-use PHPStan\PhpDocParser\Parser\ConstExprParser;
-use PHPStan\PhpDocParser\Parser\PhpDocParser;
-use PHPStan\PhpDocParser\Parser\TokenIterator;
-use PHPStan\PhpDocParser\Parser\TypeParser;
+use ApiPlatform\PDGBundle\Parser\ParserInterface;
+use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocTagValueNode;
 use Twig\TwigFilter;
 
 class MarkdownExtendedExtension extends MarkdownExtension
 {
-    private readonly Lexer $lexer;
-    private readonly PhpDocParser $parser;
-
-    public function __construct(ConfigurationHandler $configuration)
-    {
-        parent::__construct($configuration);
-
-        $this->lexer = new Lexer();
-        $this->parser = new PhpDocParser(new TypeParser(new ConstExprParser()), new ConstExprParser());
-    }
-
     public function getFilters(): array
     {
-        return parent::getFilters() + [
+        return [
             new TwigFilter('mdx_sanitize', [$this, 'sanitize']),
+            new TwigFilter('mdx_url', [$this, 'getUrl']),
+            new TwigFilter('mdx_link', [$this, 'getLink']),
         ];
+    }
+
+    public function getLink(ParserInterface|PhpDocTagValueNode|string $data, string $referenceExtension = 'mdx'): string
+    {
+        return parent::getLink($data, $referenceExtension);
+    }
+
+    public function getUrl(ParserInterface|PhpDocTagValueNode|string $data, string $referenceExtension = 'mdx'): ?string
+    {
+        return parent::getUrl($data, $referenceExtension);
     }
 
     public function sanitize(string $string): string
     {
-        $tokens = new TokenIterator($this->lexer->tokenize($string));
-        $tokens->consumeTokenType(Lexer::TOKEN_END);
-        /** @var PhpDocTextNode[] $nodes */
-        $nodes = array_filter($this->parser->parse($tokens)->children, static function (PhpDocChildNode $child): bool {
-            return $child instanceof PhpDocTextNode;
-        });
+        // {@see} breaks mdx as it thinks that it's a React component
+        $string = parent::sanitize($string);
 
-        foreach ($nodes as $node) {
-            $text = $node->text;
-            // @TODO: this should be handled by the Javascript using `md` files as `mdx` we should not need this here
-            // indeed {@see} breaks mdx as it thinks that its a React component
-            if (str_contains($text, '@see')) {
-                $text = str_replace(['{@see', '}'], ['see', ''], $text);
+        // Handle codeSelector
+        $blocks = preg_split('/(\[codeSelector\][\s\S\w\n]*?\[\/codeSelector\])/', $string, 0, \PREG_SPLIT_DELIM_CAPTURE);
+        $string = '';
+        foreach ($blocks as $block) {
+            if (str_contains($block, 'codeSelector')) {
+                $string .= $this->formatCodeSelector($block);
+                continue;
             }
-            $string.= $text.\PHP_EOL;
+
+            $string .= $block;
         }
 
         return trim($string);
+    }
+
+    private function formatCodeSelector(string $string): string
+    {
+        $codeSelectorId = uniqid();
+        $inputs = '';
+        $nav = '<ul class="code-selector-nav">'.\PHP_EOL;
+
+        if (false !== preg_match_all('/```(\w+)/', $string, $languages) && $languages) {
+            foreach ($languages[1] as $k => $language) {
+                $defaultChecked = 0 === $k ? 'defaultChecked' : '';
+                $inputs .= '<input type="radio" id="'.$codeSelectorId.'-'.$language.'" name="'.$codeSelectorId.'-code-tabs" '.$defaultChecked.' />'.\PHP_EOL;
+                $nav .= '<label for="'.$codeSelectorId.'-'.$language.'">'.$language.'</label>'.\PHP_EOL;
+            }
+            $nav .= '</ul>'.\PHP_EOL;
+        }
+
+        $string = preg_replace(
+            '/\[codeSelector\]([\w\s\S\n]*?)\[\/codeSelector\]/i',
+            '<div class="code-selector">'.\PHP_EOL.$inputs.$nav.'${1}'.\PHP_EOL.'</div>'.\PHP_EOL,
+            $string,
+        );
+
+        return preg_replace(
+            '/(```\w+\n[\w\s\S\n]*?```)/i',
+            '<div class="code-selector-content">'.\PHP_EOL.'${1}'.\PHP_EOL.'</div>'.\PHP_EOL,
+            $string,
+        );
     }
 }

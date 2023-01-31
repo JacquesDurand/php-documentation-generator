@@ -13,24 +13,26 @@ declare(strict_types=1);
 
 namespace ApiPlatform\PDGBundle\Command;
 
+use ApiPlatform\PDGBundle\Parser\ClassParser;
 use ApiPlatform\PDGBundle\Services\ConfigurationHandler;
-use ApiPlatform\PDGBundle\Services\Reference\PhpDocHelper;
-use ApiPlatform\PDGBundle\Services\Reference\Reflection\ReflectionHelper;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\ArrayInput;
-use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Finder\Finder;
+use Twig\Environment;
 
 final class ReferencesCommand extends Command
 {
+    use CommandTrait;
+
     public function __construct(
-        private readonly PhpDocHelper $phpDocHelper,
-        private readonly ReflectionHelper $reflectionHelper,
-        private readonly ConfigurationHandler $configuration
+        private readonly ConfigurationHandler $configuration,
+        private readonly Environment $environment,
+        private readonly string $templatePath
     ) {
         parent::__construct(name: 'references');
     }
@@ -39,131 +41,119 @@ final class ReferencesCommand extends Command
     {
         $this
             ->setDescription('Creates references documentation for PHP classes')
-            ->addArgument(
-                name: 'template',
-                mode: InputArgument::REQUIRED,
-                description: 'The path to the template file to use to generate each reference output file',
+            ->addOption(
+                name: 'template-path',
+                mode: InputOption::VALUE_REQUIRED,
+                description: 'The path to the template files to use to generate each reference output file',
+                default: $this->templatePath
             );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $style = new SymfonyStyle($input, $output);
-
         $patterns = $this->configuration->get('reference.patterns');
         $tagsToIgnore = $patterns['class_tags_to_ignore'] ?? ['@internal', '@experimental'];
-        $filesToExclude = $patterns['exclude'] ?? [];
-
-        $files = [];
-        $files = $this->findFilesByName($patterns['names'] ?? ['*.php'], $files, $filesToExclude);
-        $files = $this->findFilesByDirectories($patterns['directories'] ?? [], $files, $filesToExclude);
-        $files = array_unique($files);
-
+        $files = $this->findFiles($patterns['directories'] ?? [], $patterns['names'] ?? ['*.php'], $patterns['exclude'] ?? []);
         $namespaces = [];
+
+        // get the output extension
+        $extension = pathinfo($this->getTemplateFile($input->getOption('template-path'), 'reference.*.twig')->getBasename('.twig'), \PATHINFO_EXTENSION);
+
+        $style = new SymfonyStyle($input, $output);
+        $style->progressStart(\count($files));
 
         foreach ($files as $file) {
             $relativeToSrc = Path::makeRelative($file->getPath(), $this->configuration->get('reference.src'));
 
-            $namespace = rtrim(sprintf('%s\\%s', $this->configuration->get('reference.namespace'), str_replace(['/', '.php'], ['\\', ''], $relativeToSrc)), '\\');
-            $className = sprintf('%s\\%s', $namespace, $file->getBasename('.php'));
+            if (!@mkdir($concurrentDirectory = $this->configuration->get('target.directories.reference_path').\DIRECTORY_SEPARATOR.$relativeToSrc, 0777, true) && !is_dir($concurrentDirectory)) {
+                $style->error(sprintf('Cannot create directory "%s".', $concurrentDirectory));
 
-            $refl = new \ReflectionClass($className);
-
-            if (!($namespaces[$namespace] ?? false)) {
-                $namespaces[$namespace] = [];
+                return self::FAILURE;
             }
 
-            $namespaces[$namespace][] = [
-                'className' => $className,
-                'shortName' => $file->getBasename('.php'),
-                'type' => $this->getClassType($refl),
-                'link' => '/reference/'.($relativeToSrc.'/'.$file->getBaseName('.php')),
-            ];
+            $namespace = rtrim(sprintf('%s\\%s', $this->configuration->get('reference.namespace'), str_replace([\DIRECTORY_SEPARATOR, '.php'], ['\\', ''], $relativeToSrc)), '\\');
+
+            try {
+                $reflectionClass = new ClassParser(new \ReflectionClass(sprintf('%s\\%s', $namespace, $file->getBasename('.php'))));
+            } catch (\ReflectionException) {
+                $style->error(sprintf('File "%s" does not seem to be a valid PHP class.', $file->getPathname()));
+
+                return self::FAILURE;
+            }
 
             foreach ($tagsToIgnore as $tagToIgnore) {
-                if ($this->phpDocHelper->classDocContainsTag($refl, $tagToIgnore)) {
+                if ($reflectionClass->hasTag($tagToIgnore)) {
                     continue 2;
                 }
             }
 
-            if ($this->reflectionHelper->containsOnlyPrivateMethods($refl)) {
+            // class is not an interface nor a trait, and has no protected/public methods nor properties
+            if (
+                !$reflectionClass->isTrait()
+                && !$reflectionClass->isInterface()
+                && !\count($reflectionClass->getMethods())
+                && !\count($reflectionClass->getProperties())
+            ) {
                 continue;
             }
 
-            if (!@mkdir($concurrentDirectory = $this->configuration->get('target.directories.reference_path').'/'.$relativeToSrc, 0777, true) && !is_dir($concurrentDirectory)) {
-                $style->error(sprintf('Directory "%s" was not created', $concurrentDirectory));
+            // do not display output on sub-command
+            $verbosity = $output->getVerbosity();
+            $output->setVerbosity(OutputInterface::VERBOSITY_QUIET);
 
-                return Command::FAILURE;
+            // run "reference" command
+            if (
+                self::FAILURE === $this->getApplication()?->find('reference')->run(new ArrayInput([
+                    'filename' => $file->getPathName(),
+                    // todo remove output as it's already in the configuration file?
+                    'output' => sprintf('%s%s%s%2$s%s.%s', $this->configuration->get('target.directories.reference_path'), \DIRECTORY_SEPARATOR, $relativeToSrc, $file->getBaseName('.php'), $extension),
+                    '--template-path' => $input->getOption('template-path'),
+                ]), $output)
+            ) {
+                $style->error(sprintf('Failed generating reference "%s".', $file->getPathname()));
+
+                return self::FAILURE;
             }
 
-            $generateRefCommand = $this->getApplication()?->find('reference');
+            // restore default verbosity
+            $output->setVerbosity($verbosity);
 
-            $arguments = [
-                'filename' => $file->getPathName(),
-                'output' => sprintf('%s%s%s%2$s%s.mdx', $this->configuration->get('target.directories.reference_path'), \DIRECTORY_SEPARATOR, $relativeToSrc, $file->getBaseName('.php')),
-            ];
+            $namespaces[$namespace][] = $reflectionClass;
 
-            $commandInput = new ArrayInput($arguments);
-
-            if (Command::FAILURE === $generateRefCommand->run($commandInput, $output)) {
-                $style->error(sprintf('Failed generating reference for %s', $file->getBaseNme()));
-
-                return Command::FAILURE;
-            }
+            $style->progressAdvance();
         }
+
+        $style->progressFinish();
 
         // Creating an index like https://angular.io/api
-        $content = '';
-        foreach ($namespaces as $namespace => $classes) {
-            $content .= '<article class="api-list-container">'.\PHP_EOL;
-            $content .= '## '.$namespace.\PHP_EOL;
-            $content .= '<ul class="api-list">'.\PHP_EOL;
-            foreach ($classes as $classObj) {
-                $content .= sprintf('<li class="api-item"><a href="%s"><span class="symbol %s">%2$s</span>%s</a></li>%s', $classObj['link'], $classObj['type'], $classObj['shortName'], \PHP_EOL);
-            }
-            $content .= '</ul>'.\PHP_EOL;
-            $content .= '</article>'.\PHP_EOL;
+        $templateFile = $this->getTemplateFile($input->getOption('template-path'), 'index.*.twig');
+        $content = $this->environment->render($templateFile->getFilename(), ['namespaces' => $namespaces]);
+        $fileName = sprintf(
+            '%s%sindex.%s',
+            $this->configuration->get('target.directories.reference_path'),
+            \DIRECTORY_SEPARATOR,
+            pathinfo($templateFile->getBasename('.twig'), \PATHINFO_EXTENSION)
+        );
+        $dirName = pathinfo($fileName, \PATHINFO_DIRNAME);
+        if (!is_dir($dirName)) {
+            mkdir($dirName, 0777, true);
+        }
+        if (!file_put_contents($fileName, $content)) {
+            $style->error(sprintf('Cannot write file "%s".', $input->getArgument('output')));
+
+            return self::FAILURE;
         }
 
-        fwrite(\STDOUT, $content);
+        $style->success('References index successfully generated.');
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 
-    private function findFilesByDirectories(array $directories, array $files, array $filesToExclude = []): array
+    private function findFiles(array $directories, array $names, array $exclude): Finder
     {
-        foreach ($directories as $pattern) {
-            foreach ((new Finder())->files()->in($this->configuration->get('reference.src').'/'.$pattern)->name('*.php')->notName($filesToExclude) as $file) {
-                $files[] = $file;
-            }
-        }
-
-        return $files;
-    }
-
-    private function findFilesByName(array $names, array $files, array $filesToExclude = []): array
-    {
-        foreach ((new Finder())->files()->in($this->configuration->get('reference.src'))->name($names)->notName($filesToExclude) as $file) {
-            $files[] = $file;
-        }
-
-        return $files;
-    }
-
-    private function getClassType(\ReflectionClass $refl): string
-    {
-        if ($refl->isInterface()) {
-            return 'I';
-        }
-
-        if (\count($refl->getAttributes('Attribute'))) {
-            return 'A';
-        }
-
-        if ($refl->isTrait()) {
-            return 'T';
-        }
-
-        return 'C';
+        return (new Finder())->files()
+            ->in(array_map(fn (string $directory) => $this->configuration->get('reference.src').\DIRECTORY_SEPARATOR.$directory, $directories))
+            ->name($names)
+            ->notName($exclude);
     }
 }

@@ -9,9 +9,7 @@
         <service id="pdg.configuration_handler" class="ApiPlatform\PDGBundle\Services\ConfigurationHandler"/>
 
         <!-- Twig -->
-        <service id="pdg.twig.extension.reflection" class="ApiPlatform\PDGBundle\Twig\ReflectionExtension">
-            <argument type="service" id="pdg.configuration_handler"/>
-        </service>
+        <service id="pdg.twig.loader.filesystem" class="Twig\Loader\FilesystemLoader"/>
 
         <service id="pdg.twig.extension.markdown" class="ApiPlatform\PDGBundle\Twig\MarkdownExtension">
             <argument type="service" id="pdg.configuration_handler"/>
@@ -21,20 +19,31 @@
             <argument type="service" id="pdg.configuration_handler"/>
         </service>
 
+        <service id="pdg.twig" class="Twig\Environment">
+            <argument type="service" id="pdg.twig.loader.filesystem"/>
+            <argument type="collection">
+                <argument key="debug">%kernel.debug%</argument>
+            </argument>
+            <call method="addExtension">
+                <argument type="service" id="pdg.twig.extension.markdown"/>
+            </call>
+            <call method="addExtension">
+                <argument type="service" id="pdg.twig.extension.markdown_extended"/>
+            </call>
+        </service>
+
         <!-- Commands -->
         <service id="pdg.command.reference" class="ApiPlatform\PDGBundle\Command\ReferenceCommand">
-            <argument type="service" id="pdg.helper.php_doc"/>
-            <argument type="service" id="pdg.helper.reflection"/>
-            <argument type="service" id="pdg.output_formatter"/>
             <argument type="service" id="pdg.configuration_handler"/>
-            <argument>%kernel.project_dir%/template</argument>
+            <argument type="service" id="pdg.twig"/>
+            <argument>%kernel.project_dir%/template/mdx/references</argument>
             <tag>console.command</tag>
         </service>
 
         <service id="pdg.command.references" class="ApiPlatform\PDGBundle\Command\ReferencesCommand">
-            <argument type="service" id="pdg.helper.php_doc"/>
-            <argument type="service" id="pdg.helper.reflection"/>
             <argument type="service" id="pdg.configuration_handler"/>
+            <argument type="service" id="pdg.twig"/>
+            <argument>%kernel.project_dir%/template/mdx/references</argument>
             <tag>console.command</tag>
         </service>
 

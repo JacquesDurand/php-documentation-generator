@@ -1,4 +1,4 @@
-import Head from "next/head";
+{% extends 'layout.mdx.twig' %}
 
 {% block head %}
 <Head><title>{{ class.shortName }}</title></Head>
@@ -8,8 +8,8 @@ import Head from "next/head";
 # Configuration Reference
 {% endblock %}
 
-{% block description %}
+{%- block content -%}
 ```yaml
-{{ configuration }}
+{{ configuration|raw -}}
 ```
-{% endblock %}
+{%- endblock -%}

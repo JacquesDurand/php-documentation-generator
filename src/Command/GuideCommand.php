@@ -48,7 +48,7 @@ final class GuideCommand extends Command
         if (!$handle) {
             $stderr->info(sprintf('Error opening %s.', $file));
 
-            return Command::INVALID;
+            return self::INVALID;
         }
 
         // Let's split the code between an array of code and an array of text
@@ -167,6 +167,6 @@ MD;
 
         $output->write($a);
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }

@@ -11,11 +11,8 @@
 
 declare(strict_types=1);
 
-namespace ApiPlatform\PDGBundle\Twig;
+namespace ApiPlatform\PDGBundle\Parser;
 
-interface TemplateExtension
+interface ParserInterface
 {
-    public function getFilters(): array;
-
-    public function getLink(\ReflectionClass $class): string;
 }
