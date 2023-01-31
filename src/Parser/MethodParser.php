@@ -40,7 +40,9 @@ final class MethodParser extends AbstractParser
 
     public function getReturnType(): ?TypeParser
     {
-        return $this->getReflection()->hasReturnType() ? new TypeParser($this->getReflection()->getReturnType()) : null;
+        $reflection = $this->getReflection();
+
+        return $reflection->hasReturnType() ? new TypeParser($reflection->getReturnType()) : null;
     }
 
     public function getDocComment(): string|false
@@ -50,10 +52,12 @@ final class MethodParser extends AbstractParser
             return $docComment;
         }
 
+        $reflection = $this->getReflection();
+
         // import and replace "inheritdoc"
         if (str_contains($docComment, '@inheritdoc')) {
-            $name = $this->getReflection()->getName();
-            $class = new ClassParser($this->getReflection()->getDeclaringClass());
+            $name = $reflection->getName();
+            $class = new ClassParser($reflection->getDeclaringClass());
 
             // import docComment from parent class first
             if (

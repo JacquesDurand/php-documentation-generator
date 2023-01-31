@@ -28,7 +28,9 @@ final class PropertyParser extends AbstractParser
 
     public function getType(): ?TypeParser
     {
-        return $this->getReflection()->hasType() ? new TypeParser($this->getReflection()->getType()) : null;
+        $reflection = $this->getReflection();
+
+        return $reflection->hasType() ? new TypeParser($reflection->getType()) : null;
     }
 
     public function getDocComment(): string|false
@@ -38,11 +40,13 @@ final class PropertyParser extends AbstractParser
             return $docComment;
         }
 
+        $reflection = $this->getReflection();
+
         // property does not have any docComment: try to retrieve it from constructor
-        $class = $this->getReflection()->getDeclaringClass();
+        $class = $reflection->getDeclaringClass();
         if ($class->hasMethod('__construct')) {
             foreach ((new MethodParser($class->getMethod('__construct')))->getPhpDoc()->getParamTagValues() as $param) {
-                if ($this->getReflection()->getName() === substr($param->parameterName, 1)) {
+                if ($reflection->getName() === substr($param->parameterName, 1)) {
                     // docComment MUST be a comment to be parsed by "getPhpDoc"
                     // comment is removed in "getSummary" method
                     return sprintf(<<<EOT
@@ -67,11 +71,13 @@ EOT
             }
         }
 
+        $reflection = $this->getReflection();
+
         // retrieve types from constructor doc
-        $class = $this->getReflection()->getDeclaringClass();
+        $class = $reflection->getDeclaringClass();
         if ($class->hasMethod('__construct')) {
             foreach ((new MethodParser($class->getMethod('__construct')))->getPhpDoc()->getParamTagValues() as $paramTagValue) {
-                if ($this->getReflection()->getName() === substr($paramTagValue->parameterName, 1)) {
+                if ($reflection->getName() === substr($paramTagValue->parameterName, 1)) {
                     return $paramTagValue;
                 }
             }
@@ -82,12 +88,14 @@ EOT
 
     public function getDefaultValue()
     {
+        $reflection = $this->getReflection();
+
         // ignore property without default value or related to internal classes
-        if (!$this->getReflection()->hasDefaultValue() || $this->getReflection()->getDeclaringClass()->isInternal()) {
+        if (!$reflection->hasDefaultValue() || $reflection->getDeclaringClass()->isInternal()) {
             return null;
         }
 
-        return $this->getReflection()->getDefaultValue();
+        return $reflection->getDefaultValue();
     }
 
     /**
@@ -95,10 +103,11 @@ EOT
      */
     public function getAccessors()
     {
-        $propertyName = $this->getReflection()->getName();
+        $reflection = $this->getReflection();
+        $propertyName = $reflection->getName();
         $accessors = [];
 
-        foreach ($this->getReflection()->getDeclaringClass()->getMethods() as $method) {
+        foreach ($reflection->getDeclaringClass()->getMethods() as $method) {
             switch ($method->getName()) {
                 case 'get'.ucfirst($propertyName):
                 case 'is'.ucfirst($propertyName):

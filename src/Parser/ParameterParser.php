@@ -23,8 +23,10 @@ final class ParameterParser extends AbstractParser
 
     public function getType(): ?TypeParser
     {
-        if ($this->getReflection()->hasType()) {
-            return new TypeParser($this->getReflection()->getType());
+        $reflection = $this->getReflection();
+
+        if ($reflection->hasType()) {
+            return new TypeParser($reflection->getType());
         }
 
         return null;
@@ -32,10 +34,12 @@ final class ParameterParser extends AbstractParser
 
     public function getAdditionalTypes(): ?ParamTagValueNode
     {
+        $reflection = $this->getReflection();
+
         // retrieve additional types from method doc
-        $phpDoc = (new MethodParser($this->getReflection()->getDeclaringFunction()))->getPhpDoc();
+        $phpDoc = (new MethodParser($reflection->getDeclaringFunction()))->getPhpDoc();
         foreach ($phpDoc->getParamTagValues() as $param) {
-            if ($this->getReflection()->getName() === substr($param->parameterName, 1)) {
+            if ($reflection->getName() === substr($param->parameterName, 1)) {
                 return $param;
             }
         }

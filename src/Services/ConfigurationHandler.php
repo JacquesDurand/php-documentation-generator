@@ -23,39 +23,9 @@ use Symfony\Component\Yaml\Yaml;
  */
 final class ConfigurationHandler
 {
-    private ?array $config = null;
+    private array $config = [];
 
-    public function get(string $name, $default = null): mixed
-    {
-        $this->parse();
-
-        // Convert "foo.bar.baz" in "['foo' => ['bar' => ['baz' => ...]]]"
-        $config = $this->config;
-        $keys = explode('.', $name);
-        foreach ($keys as $key) {
-            if (\array_key_exists($key, $config)) {
-                $config = $config[$key];
-                continue;
-            }
-
-            return $default;
-        }
-
-        return \is_string($config) ? rtrim($config, '/\\') : $config;
-    }
-
-    public function isExcluded(\Reflector|ParserInterface $reflection): bool
-    {
-        foreach ($this->get('reference.patterns.exclude') as $rule) {
-            if (preg_match(sprintf('/%s/', preg_quote($rule)), $reflection->getFileName())) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function parse(): void
+    public function __construct()
     {
         $cwd = getcwd();
 
@@ -95,6 +65,35 @@ final class ConfigurationHandler
         if (!file_exists($autoload)) {
             throw new \RuntimeException(sprintf('Autoload file "%s" does not exist.', $autoload));
         }
+
         require_once $autoload;
+    }
+
+    public function get(string $name, $default = null): mixed
+    {
+        // Convert "foo.bar.baz" in "['foo' => ['bar' => ['baz' => ...]]]"
+        $config = $this->config;
+        $keys = explode('.', $name);
+        foreach ($keys as $key) {
+            if (\array_key_exists($key, $config)) {
+                $config = $config[$key];
+                continue;
+            }
+
+            return $default;
+        }
+
+        return \is_string($config) ? rtrim($config, '/\\') : $config;
+    }
+
+    public function isExcluded(\Reflector|ParserInterface $reflection): bool
+    {
+        foreach ($this->get('reference.patterns.exclude') as $rule) {
+            if (preg_match(sprintf('/%s/', preg_quote($rule)), $reflection->getFileName())) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

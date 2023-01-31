@@ -41,7 +41,9 @@ final class TypeParser extends AbstractParser
 
     public function isClass(): bool
     {
-        return $this->isNamed() && !$this->getReflection()->isBuiltin() && class_exists($this->getReflection()->getName());
+        $reflection = $this->getReflection();
+
+        return $this->isNamed() && !$reflection->isBuiltin() && class_exists($reflection->getName());
     }
 
     public function getClass(): ?ClassParser

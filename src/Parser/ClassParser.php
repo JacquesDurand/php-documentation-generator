@@ -126,8 +126,10 @@ final class ClassParser extends AbstractParser
      */
     public function getMethods(): array
     {
+        $reflection = $this->getReflection();
+
         $methods = [];
-        foreach ($this->getReflection()->getMethods(\ReflectionMethod::IS_PUBLIC | \ReflectionMethod::IS_PROTECTED) as $method) {
+        foreach ($reflection->getMethods(\ReflectionMethod::IS_PUBLIC | \ReflectionMethod::IS_PROTECTED) as $method) {
             $method = new MethodParser($method);
 
             // ignore constructor
@@ -136,7 +138,7 @@ final class ClassParser extends AbstractParser
             }
 
             // ignore from external class (e.g.: parent class)
-            if ($this->getReflection()->getName() !== $method->getDeclaringClass()->getName()) {
+            if ($reflection->getName() !== $method->getDeclaringClass()->getName()) {
                 continue;
             }
 

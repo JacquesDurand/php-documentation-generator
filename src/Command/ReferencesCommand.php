@@ -56,8 +56,10 @@ final class ReferencesCommand extends Command
         $files = $this->findFiles($patterns['directories'] ?? [], $patterns['names'] ?? ['*.php'], $patterns['exclude'] ?? []);
         $namespaces = [];
 
+        $templatePath = $input->getOption('template-path');
+
         // get the output extension
-        $extension = pathinfo($this->getTemplateFile($input->getOption('template-path'), 'reference.*.twig')->getBasename('.twig'), \PATHINFO_EXTENSION);
+        $extension = pathinfo($this->getTemplateFile($templatePath, 'reference.*.twig')->getBasename('.twig'), \PATHINFO_EXTENSION);
 
         $style = new SymfonyStyle($input, $output);
         $style->progressStart(\count($files));
@@ -107,7 +109,7 @@ final class ReferencesCommand extends Command
                     'filename' => $file->getPathName(),
                     // todo remove output as it's already in the configuration file?
                     'output' => sprintf('%s%s%s%2$s%s.%s', $this->configuration->get('target.directories.reference_path'), \DIRECTORY_SEPARATOR, $relativeToSrc, $file->getBaseName('.php'), $extension),
-                    '--template-path' => $input->getOption('template-path'),
+                    '--template-path' => $templatePath,
                 ]), $output)
             ) {
                 $style->error(sprintf('Failed creating reference "%s".', $file->getPathname()));
@@ -126,7 +128,7 @@ final class ReferencesCommand extends Command
         $style->progressFinish();
 
         // Creating an index like https://angular.io/api
-        $templateFile = $this->getTemplateFile($input->getOption('template-path'), 'index.*.twig');
+        $templateFile = $this->getTemplateFile($templatePath, 'index.*.twig');
         $content = $this->environment->render($templateFile->getFilename(), ['namespaces' => $namespaces]);
         $fileName = sprintf(
             '%s%sindex.%s',

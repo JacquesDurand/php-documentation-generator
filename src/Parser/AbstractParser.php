@@ -26,16 +26,18 @@ abstract class AbstractParser implements ParserInterface
 
     public function __call(string $name, array $arguments)
     {
-        if (!\is_callable([$this->getReflection(), $name])) {
+        $reflection = $this->getReflection();
+
+        if (!\is_callable([$reflection, $name])) {
             foreach (['get'.ucfirst($name), 'is'.ucfirst($name), 'has'.ucfirst($name)] as $accessor) {
-                if (\is_callable([$this->getReflection(), $accessor])) {
+                if (\is_callable([$reflection, $accessor])) {
                     $name = $accessor;
                 }
             }
         }
 
-        if (\is_callable([$this->getReflection(), $name])) {
-            return $this->getReflection()->{$name}(...$arguments);
+        if (\is_callable([$reflection, $name])) {
+            return $reflection->{$name}(...$arguments);
         }
 
         throw new \LogicException(sprintf('Method "%s::%s" does not exist.', static::class, $name));
@@ -48,11 +50,13 @@ abstract class AbstractParser implements ParserInterface
 
     public function getDocComment(): string|false
     {
-        if (!\is_callable([$this->getReflection(), 'getDocComment'])) {
-            throw new \LogicException(sprintf('Method "%s::getDocComment" is not callable.', $this->getReflection()::class));
+        $reflection = $this->getReflection();
+
+        if (!\is_callable([$reflection, 'getDocComment'])) {
+            throw new \LogicException(sprintf('Method "%s::getDocComment" is not callable.', $reflection::class));
         }
 
-        if (false === ($docComment = $this->getReflection()->getDocComment())) {
+        if (false === ($docComment = $reflection->getDocComment())) {
             return false;
         }
 

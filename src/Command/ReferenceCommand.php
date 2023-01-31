@@ -59,6 +59,10 @@ final class ReferenceCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $file = new \SplFileInfo($input->getArgument('filename'));
+        if (!$file->isFile()) {
+            throw new \RuntimeException(sprintf('File "%s" does not exist.', $file->getPathname()));
+        }
+
         $reflectionClass = new \ReflectionClass($this->getNamespace($file));
 
         $style = new SymfonyStyle($input, $output);
@@ -84,18 +88,19 @@ final class ReferenceCommand extends Command
             $templateContext
         );
 
-        if (!$input->getArgument('output')) {
+        $out = $input->getArgument('output');
+        if (!$out) {
             $style->block($content);
 
             return self::SUCCESS;
         }
 
-        $dirName = pathinfo($input->getArgument('output'), \PATHINFO_DIRNAME);
+        $dirName = pathinfo($out, \PATHINFO_DIRNAME);
         if (!is_dir($dirName)) {
             mkdir($dirName, 0777, true);
         }
-        if (!file_put_contents($input->getArgument('output'), $content)) {
-            $style->error(sprintf('Cannot write in "%s".', $input->getArgument('output')));
+        if (!file_put_contents($out, $content)) {
+            $style->error(sprintf('Cannot write in "%s".', $out));
 
             return self::FAILURE;
         }

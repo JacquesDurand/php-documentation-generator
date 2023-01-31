@@ -62,9 +62,9 @@ final class GuideCommand extends Command
 
         $style = new SymfonyStyle($input, $output);
 
-        $handle = fopen($file->getFilename(), 'r');
+        $handle = fopen($file->getPathName(), 'r');
         if (!$handle) {
-            $style->error(sprintf('Error opening "%s".', $file->getFilename()));
+            $style->error(sprintf('Error opening "%s".', $file->getPathName()));
 
             return self::INVALID;
         }
@@ -80,7 +80,7 @@ final class GuideCommand extends Command
         // we keep the headers as-is in this array
         $headers = [];
 
-        $style->info(sprintf('Creating guide "%s".', $file->getFilename()));
+        $style->info(sprintf('Creating guide "%s".', $file->getPathName()));
 
         while (($line = fgets($handle)) !== false) {
             if (!isset($sections[$currentSection]['text'])) {
@@ -154,18 +154,19 @@ final class GuideCommand extends Command
             ['headers' => $headers, 'sections' => $sections]
         );
 
-        if (!$input->getArgument('output')) {
+        $out = $input->getArgument('output');
+        if (!$out) {
             $style->block($content);
 
             return self::SUCCESS;
         }
 
-        $dirName = pathinfo($input->getArgument('output'), \PATHINFO_DIRNAME);
+        $dirName = pathinfo($out, \PATHINFO_DIRNAME);
         if (!is_dir($dirName)) {
             mkdir($dirName, 0777, true);
         }
-        if (!file_put_contents($input->getArgument('output'), $content)) {
-            $style->error(sprintf('Cannot write in "%s".', $input->getArgument('output')));
+        if (!file_put_contents($out, $content)) {
+            $style->error(sprintf('Cannot write in "%s".', $out));
 
             return self::FAILURE;
         }

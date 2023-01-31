@@ -53,6 +53,11 @@
             "App\\": "tests/Application/src"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "ApiPlatform\\PDGBundle\\Tests\\Command\\App\\": "tests/Command/src/"
+        }
+    },
     "bin": ["bin/pdg"],
     "config": {
         "allow-plugins": {
