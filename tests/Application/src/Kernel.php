@@ -38,12 +38,13 @@ class Kernel extends BaseKernel
 {
     use MicroKernelTrait;
 
-    public function __construct(string $environment, bool $debug, private string $guide = '')
+    public function __construct(?string $environment, ?bool $debug, private string $guide = '')
     {
         parent::__construct($environment ?? 'test', $debug ?? true);
         $this->guide = $_ENV['GUIDE_NAME'] ?? 'test';
     }
 
+    // @phpstan-ignore-next-line
     private function configureContainer(ContainerConfigurator $container, LoaderInterface $loader, ContainerBuilder $builder): void
     {
         $configDir = $this->getConfigDir();

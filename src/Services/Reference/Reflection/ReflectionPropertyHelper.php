@@ -73,6 +73,7 @@ class ReflectionPropertyHelper
         $prefix = ' = ';
 
         return match (true) {
+            default => '',
             null === $defaultValue => '',
             $defaultValue instanceof Node\Scalar => $prefix.$defaultValue->getAttribute('rawValue'),
             $defaultValue instanceof Node\Expr\ConstFetch => $prefix.$defaultValue->name->parts[0],
@@ -145,6 +146,7 @@ class ReflectionPropertyHelper
         $prefix = ' = ';
 
         return match (true) {
+            default => '',
             null === $defaultValue => '',
             $defaultValue instanceof Node\Scalar => $prefix.$defaultValue->getAttribute('rawValue'),
             $defaultValue instanceof Node\Expr\ConstFetch => $prefix.$defaultValue->name->parts[0],

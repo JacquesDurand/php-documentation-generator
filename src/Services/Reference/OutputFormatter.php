@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace ApiPlatform\PDGBundle\Services\Reference;
 
+use PHPStan\PhpDocParser\Ast\Type\IdentifierTypeNode;
 use PhpParser\Node;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocChildNode;
 use PHPStan\PhpDocParser\Ast\PhpDoc\PhpDocNode;
@@ -47,7 +48,8 @@ class OutputFormatter
 
     public function linkClasses(\ReflectionType|\ReflectionNamedType $reflectionNamedType): string
     {
-        if (!class_exists($name = $reflectionNamedType->getName()) && !interface_exists($name)) {
+        $name = $reflectionNamedType instanceof \ReflectionNamedType ? $reflectionNamedType->getName() : '';
+        if (!class_exists($name) && !interface_exists($name)) {
             if ($reflectionNamedType instanceof \ReflectionNamedType && $reflectionNamedType->allowsNull()) {
                 return '?'.$name;
             }
@@ -67,8 +69,9 @@ class OutputFormatter
     public function formatCodeSelector(string $content): string
     {
         $codeSelectorId = uniqid();
+        $inputs = '';
+        $nav = '';
         if (false !== preg_match_all('/```(\w+)/', $content, $languages) && $languages) {
-            $inputs = '';
             $nav = '<ul class="code-selector-nav">'.\PHP_EOL;
             foreach ($languages[1] as $k => $language) {
                 $defaultChecked = 0 === $k ? 'defaultChecked' : '';
@@ -124,7 +127,7 @@ class OutputFormatter
         });
 
         foreach ($tags as $tag) {
-            if ($tag->value instanceof ThrowsTagValueNode) {
+            if ($tag->value instanceof ThrowsTagValueNode && $tag->value->type instanceof IdentifierTypeNode) { 
                 $content .= '> '.$this->addCssClasses('throws ', ['token', 'keyword']).$tag->value->type->name.\PHP_EOL.'> '.\PHP_EOL;
             }
         }

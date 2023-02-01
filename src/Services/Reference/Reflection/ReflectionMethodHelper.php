@@ -65,7 +65,7 @@ class ReflectionMethodHelper
     }
 
     /**
-     * @return array<string, string>
+     * @return string[]
      */
     public function getParametersWithType(\ReflectionMethod $method): array
     {
@@ -136,6 +136,7 @@ class ReflectionMethodHelper
         $prefix = ' ';
 
         return match (true) {
+            default => '',
             null === $defaultValue => '',
             $defaultValue instanceof Node\Scalar => $prefix.$defaultValue->getAttribute('rawValue'),
             $defaultValue instanceof Node\Expr\ConstFetch => $prefix.$defaultValue->name->parts[0],

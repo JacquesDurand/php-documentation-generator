@@ -21,9 +21,8 @@ class Configuration implements ConfigurationInterface
     public function getConfigTreeBuilder(): TreeBuilder
     {
         $treeBuilder = new TreeBuilder('api_platform_pdg');
-        $rootNode = $treeBuilder->getRootNode();
 
-        $rootNode
+        $treeBuilder->getRootNode() // @phpstan-ignore-line
             ->children()
                 ->scalarNode('autoload')
                     ->defaultValue('vendor/autoload.php')

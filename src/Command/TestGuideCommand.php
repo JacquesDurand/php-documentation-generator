@@ -25,7 +25,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 final class TestGuideCommand extends Command
 {
-    public function __construct(private readonly ConfigurationHandler $configurationHandler)
+    public function __construct(private readonly ConfigurationHandler $configurationHandler) // @phpstan-ignore-line constructor is autoloading the guide dependencies
     {
         parent::__construct(name: 'test:guide');
     }
