@@ -37,12 +37,8 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Kernel as BaseKernel;
 
-use function App\DependencyInjection\configure;
-use function App\Playground\request;
-
-// @phpstan-ignore-line
-
-// @phpstan-ignore-line
+use function App\DependencyInjection\configure; // @phpstan-ignore-line
+use function App\Playground\request; // @phpstan-ignore-line
 
 class Kernel extends BaseKernel
 {
@@ -50,7 +46,7 @@ class Kernel extends BaseKernel
 
     public function __construct(string $environment, bool $debug, private string $guide = '')
     {
-        parent::__construct($environment ?? 'test', $debug ?? true);
+        parent::__construct($environment, $debug);
         $this->guide = $_ENV['GUIDE_NAME'] ?? 'test';
     }
 
