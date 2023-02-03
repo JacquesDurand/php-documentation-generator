@@ -11,7 +11,7 @@
 
 declare(strict_types=1);
 
-namespace PhpDocumentGenerator\Tests\TestBundle\Guide;
+namespace PhpDocumentGenerator\Playground;
 
 use ApiPlatform\Symfony\Bundle\Test\ApiTestCase;
 
